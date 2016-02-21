@@ -35,6 +35,8 @@ Sample Output
 #include <utility>
 #include <algorithm>
 #include <set>
+#include <cmath>
+#include <limits>
 #include <iomanip>
 
 using namespace std;
@@ -98,99 +100,73 @@ vector<Point> GetConvexHull(vector<Point> points)
     return convexHull;
 }
 
-double GetDistanceBetweenPointAndLine(Point p0, Point p1, Point p2)
+double GetAngle(Point a, Point b)
 {
-    return abs((p2.y - p1.y)* p0.x - (p2.x - p1.x) * p0.y + p2.x * p1.y - p2.y * p1.x)
-        / sqrt(pow(p2.y - p1.y,2) + pow(p2.x - p1.x,2));
+    double x = a.x - b.x;
+    double y = a.y - b.y;
+
+    return atan(y/x);
 }
 
-double GetFurtherestDistanceFromLine(const vector<Point> &convexHull, Point a, Point b)
+Point RotatePoint(Point p, double angle)
 {
-    double furtherestDistancePointToLine;
+    /*
+        Rotation Matrix:
+
+        [ x']   [ cos(θ) -sin(θ) ] [ x ]
+        |   | = |                | |   |
+        [ y']   [ sin(θ)  cos(θ) ] [ y ]
+
+    */
+
+    Point rotatedPoint;
+
+    double xPrime = cos(angle) * p.x + -1 * sin(angle) * p.y;
+    double yPrime = sin(angle) * p.x + cos(angle) * p.y;
+
+    rotatedPoint.x = xPrime;
+    rotatedPoint.y = yPrime;
+
+    return rotatedPoint;
+}
+
+vector<Point> RotateConvexHull(const vector<Point> &convexHull, double angle)
+{
+    vector<Point> rotatedConvexHull;
 
     for (Point p : convexHull)
     {
-        double distance = GetDistanceBetweenPointAndLine(p, a, b);
+        Point rotatedPoint = RotatePoint(p, angle);
 
-        if (distance > furtherestDistancePointToLine)
-        {
-            furtherestDistancePointToLine = distance;
-        }
+        rotatedConvexHull.push_back(rotatedPoint);
     }
 
-    return furtherestDistancePointToLine;
-}
-
-double GetDistance(Point a, Point b)
-{
-    return sqrt(pow(a.x - b.x,2) + pow(a.y - b.y,2));
-}
-
-Point GetClosestPointOnLine(Point p, Point a, Point b)
-{
-    Point toReturn;
-
-    if (a.x == b.x)
-    {
-        toReturn.x = a.x;
-        toReturn.y = p.y;
-
-        return toReturn;
-    }
-    else if (a.y == b.y)
-    {
-        toReturn.y = a.y;
-        toReturn.x = p.x;
-
-        return toReturn;
-    }
-
-    // y = Ax + C, y = Bx + D
-    // Line equation
-    double A = (a.y - b.y) / (a.x - b.x);
-    double C = a.y - a.x * A;
-    double B = -1 / A;
-    double D = p.y - p.x * B;
-
-    toReturn.x = (D - C) / (A - B);
-    toReturn.y = (A * D - B * C) / (A - B);
-
-    return toReturn;
-}
-
-vector<Point> GetClosestPointsOnLine(const vector<Point> &convexHull, Point a, Point b)
-{
-    vector<Point> closestPointsOnLine;
-
-    for (Point p : convexHull)
-    {
-        Point closestPoint = GetClosestPointOnLine(p, a, b);
-
-        closestPointsOnLine.push_back(closestPoint);
-    }
-
-    return closestPointsOnLine;
-}
-
-double GetLongestDistanceBetweenTwoPointsAlongLine(const vector<Point> &convexHull, Point a, Point b)
-{
-    vector<Point> pointsOnLine = GetClosestPointsOnLine(convexHull, a, b);
-
-    sort(pointsOnLine.begin(), pointsOnLine.end());
-
-    return GetDistance(pointsOnLine[0], pointsOnLine[pointsOnLine.size() - 1]);
+    return rotatedConvexHull;
 }
 
 double GetRectangleArea(const vector<Point> &convexHull, Point a, Point b)
 {
-    double furtherestDistancePointToLine = GetFurtherestDistanceFromLine(convexHull, a, b);
-    double longestDistanceBetweenTwoPointsAlongLine = 
-        GetLongestDistanceBetweenTwoPointsAlongLine(convexHull, a, b);
+    double angle = GetAngle(a, b);
 
-    return furtherestDistancePointToLine * longestDistanceBetweenTwoPointsAlongLine;
+    vector<Point> rotatedConvexHull = RotateConvexHull(convexHull, -1 * angle);
+
+    double xMin = numeric_limits<double>::max();
+    double xMax = numeric_limits<double>::lowest();
+    double yMin = numeric_limits<double>::max();
+    double yMax = numeric_limits<double>::lowest();
+
+    for (Point p : rotatedConvexHull)
+    {
+        xMin = min(xMin, p.x);
+        xMax = max(xMax, p.x);
+        yMin = min(yMin, p.y);
+        yMax = max(yMax, p.y);
+    }
+
+    return (xMax - xMin) * (yMax - yMin);
 }
 
-double GetAreaOfSmallestBoundingRectangle(vector<Point> points)
+vector<Point> GetUniquePoints(vector<Point> points)
 {
     set<Point> unique;
 
@@ -199,12 +175,19 @@ double GetAreaOfSmallestBoundingRectangle(vector<Point> points)
         unique.insert(p);
     }
 
-    points = vector<Point>();
+    vector<Point> uniquePoints;
 
     for (Point p : unique)
     {
-        points.push_back(p);
+        uniquePoints.push_back(p);
     }
+
+    return uniquePoints;
+}
+
+double GetAreaOfSmallestBoundingRectangle(vector<Point> points)
+{
+    points = GetUniquePoints(points);
 
     if (points.size() <= 2)
     {
