@@ -63,7 +63,20 @@ struct Vector2d
     {
         return x * other.x + y * other.y;
     }
+
+    void normalize()
+    {
+        double magnitude = sqrt(pow(x,2) + pow(y,2));
+
+        x /= magnitude;
+        y /= magnitude;
+    }
 };
+
+bool IsEqual(double a, double b)
+{
+    return abs(a - b) < EPSILON;
+}
 
 struct Point
 {
@@ -75,31 +88,24 @@ struct Point
 
     bool operator < (const Point &other) const
     {
-        return x != other.x ? x < other.x : y < other.y;
+        if (IsEqual(x, other.x))
+        {
+            if (IsEqual(y, other.y))
+            {
+                return false;
+            }
+
+            return y < other.y;
+        }
+
+        return x < other.x;
     }
 
     bool operator == (const Point &other) const
     {
         return x == other.x && y == other.y;
     }
-
-    friend ostream& operator << (ostream &out, const Point &other)
-    {
-        out << "( " << other.x << " , " << other.y << " )";
-    }
 };
-
-void Print(const vector<Point> &hull)
-{
-    cout << "Convex Hull:" << endl;
-
-    for (Point p : hull)
-    {
-        cout << p << endl;
-    }
-
-    cout << endl;
-}
 
 vector<Point> RemoveDuplicates(const vector<Point> &points)
 {
@@ -118,7 +124,7 @@ bool DoesNotTurnCounterClockwise(const Point &p, const vector<Point> &hull)
     double crossProduct = GetCrossProduct(hull[hull.size()-2], hull[hull.size()-1], p);
 
     // If '=' is included, then points that lie on an edge are not included
-    return crossProduct <= 0;
+    return crossProduct <= EPSILON;
 }
 
 vector<Point> GetConvexHull(vector<Point> points)
@@ -222,7 +228,9 @@ bool IsInsideTriangle(const Point &p0, const Point &p1, const Point &p2, const P
     double b = ((p3.y - p1.y) * (p0.x - p3.x) + (p1.x - p3.x) * (p0.y - p3.y)) / denominator;
     double c = 1 - a - b;
 
-    return 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1;
+    return (0 - EPSILON) <= a && a <= (1 + EPSILON)
+        && (0 - EPSILON) <= b && b <= (1 + EPSILON)
+        && (0 - EPSILON) <= c && c <= (1 + EPSILON);
 }
 
 vector<Point> GetPointsInsideTriangle(const Point &p1, const Point &p2, const Point &p3, const vector<Point> &points)
@@ -247,16 +255,6 @@ vector<Point> RemovePoint(vector<Point> points, Point toRemove)
     return points;
 }
 
-bool IsZero(double number)
-{
-    return abs(number) < EPSILON;
-}
-
-bool IsSameSign(double a, double b)
-{
-    return a*b >= 0.0;
-}
-
 Vector2d Rotate(const Vector2d &v, double radians)
 {
     Vector2d toReturn;
@@ -269,6 +267,16 @@ Vector2d Rotate(const Vector2d &v, double radians)
 
 Vector2d GetNormalVector(const Vector2d &v)
 {
+    if (v.x == 0)
+    {
+        return Vector2d(1,0);
+    }
+
+    if (v.y == 0)
+    {
+        return Vector2d(0,1);
+    }
+
     const double degrees = 90;
 
     return Rotate(v, degrees * PI / 180.0);
@@ -296,19 +304,19 @@ void PartitionPointsWithLine(const Point &pointWithLine, const Point &pointOnLin
 
     Vector2d line(pointOnLine.x, pointOnLine.y);
     Vector2d normal = GetNormalVector(line);
+    normal.normalize();
     Vector2d signVector(pointWithLine.x, pointWithLine.y);
+    signVector.normalize();
 
-    //double scalarProductOfNormal = normal.dot(signVector);
     int normalSign = GetSign(normal.dot(signVector));
 
     for (Point p : pointsToPartition)
     {
-        Vector2d pointVector(p.x, p.y);     // This is possible because the line contains origin
+        Vector2d pointVector(p.x - pointOnLine.x, p.y - pointOnLine.y);
+        pointVector.normalize();
 
-        //double scalarProduct = normal.dot(pointVector);
         int pointSign = GetSign(normal.dot(pointVector));
 
-        //if (IsZero(scalarProduct) || IsSameSign(scalarProduct, scalarProductOfNormal))
         if (pointSign == 0 || normalSign == pointSign)
         {
             pointsWithLine.push_back(p);
