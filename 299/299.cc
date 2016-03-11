@@ -53,7 +53,7 @@ int GetNumberOfSwapsInBubbleSort(vector<int> &currentOrder)
     {
         hasSwapBeenMade = false;
 
-        for (int i=0; i<currentOrder.size() - 1; ++i)
+        for (int i=0; i<((int)currentOrder.size()) - 1; ++i)
         {
             if (currentOrder[i] > currentOrder[i+1])
             {
