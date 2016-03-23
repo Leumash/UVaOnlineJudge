@@ -125,7 +125,7 @@ struct Cube
 struct CubeData
 {
     int weight;
-    string topOfCube;
+    string directionThatFacesTop;
 };
 
 vector<pair<int,string>> GetLargestStackOfCubes(vector<int> &verticesOfLongestPath, const unordered_map<int,CubeData> &vertexToCubeData)
@@ -138,7 +138,7 @@ vector<pair<int,string>> GetLargestStackOfCubes(vector<int> &verticesOfLongestPa
     {
         CubeData vertexCubeData = vertexToCubeData.at(vertex);
 
-        largestStackOfCubes.push_back(make_pair(vertexCubeData.weight, vertexCubeData.topOfCube));
+        largestStackOfCubes.push_back(make_pair(vertexCubeData.weight, vertexCubeData.directionThatFacesTop));
     }
 
     return largestStackOfCubes;
@@ -228,11 +228,119 @@ vector<pair<int,string>> GetLargestStackOfCubes(const Graph &graph, const unorde
 
 Graph MakeGraph(const vector<Cube> &cubes, unordered_map<int,CubeData> &vertexToCubeData)
 {
+    // front, back, left, right, top and bottom
     Graph graph;
 
-    vertexToCubeData[0] = CubeData();
+    // Add all vertices
+    for (const auto &cube : cubes)
+    {
+        int vertexBaseValue = (cube.weight - 1) * 6;
 
-    graph.AddVertex(0);
+        for (int i=0; i<6; ++i)
+        {
+            graph.AddVertex(vertexBaseValue + i);
+        }
+    }
+
+    // Create vertexToCubeData map
+    for (const auto &cube : cubes)
+    {
+        int vertexBaseValue = (cube.weight - 1) * 6;
+        int weight = cube.weight;
+
+        CubeData cubeData;
+        cubeData.weight = weight;
+
+        cubeData.directionThatFacesTop = "front";
+        vertexToCubeData[vertexBaseValue + 0] = cubeData;
+        
+        cubeData.directionThatFacesTop = "back";
+        vertexToCubeData[vertexBaseValue + 1] = cubeData;
+        
+        cubeData.directionThatFacesTop = "left";
+        vertexToCubeData[vertexBaseValue + 2] = cubeData;
+        
+        cubeData.directionThatFacesTop = "right";
+        vertexToCubeData[vertexBaseValue + 3] = cubeData;
+        
+        cubeData.directionThatFacesTop = "top";
+        vertexToCubeData[vertexBaseValue + 4] = cubeData;
+        
+        cubeData.directionThatFacesTop = "bottom";
+        vertexToCubeData[vertexBaseValue + 5] = cubeData;
+    }
+
+    // Create the unordered_map data structure to add edges
+    unordered_map<int,vector<pair<int,int>>> colorToWeightAndVertices;
+
+    for (const auto &cube : cubes)
+    {
+        int weight = cube.weight;
+        int vertexBaseValue = (cube.weight - 1) * 6;
+
+        colorToWeightAndVertices[cube.front].push_back(make_pair(weight, vertexBaseValue + 0));
+        colorToWeightAndVertices[cube.back].push_back(make_pair(weight, vertexBaseValue + 1));
+        colorToWeightAndVertices[cube.left].push_back(make_pair(weight, vertexBaseValue + 2));
+        colorToWeightAndVertices[cube.right].push_back(make_pair(weight, vertexBaseValue + 3));
+        colorToWeightAndVertices[cube.top].push_back(make_pair(weight, vertexBaseValue + 4));
+        colorToWeightAndVertices[cube.bottom].push_back(make_pair(weight, vertexBaseValue + 5));
+    }
+
+    // Add Edges
+    for (const auto &cube : cubes)
+    {
+        int weight = cube.weight;
+        int vertexBaseValue = (cube.weight - 1) * 6;
+
+        for (const auto &colorToWeightAndVertex : colorToWeightAndVertices[cube.back])
+        {
+            if (weight < colorToWeightAndVertex.first)
+            {
+                graph.AddEdge(vertexBaseValue + 0, colorToWeightAndVertex.second);
+            }
+        }
+
+        for (const auto &colorToWeightAndVertex : colorToWeightAndVertices[cube.front])
+        {
+            if (weight < colorToWeightAndVertex.first)
+            {
+                graph.AddEdge(vertexBaseValue + 1, colorToWeightAndVertex.second);
+            }
+        }
+
+        for (const auto &colorToWeightAndVertex : colorToWeightAndVertices[cube.right])
+        {
+            if (weight < colorToWeightAndVertex.first)
+            {
+                graph.AddEdge(vertexBaseValue + 2, colorToWeightAndVertex.second);
+            }
+        }
+
+        for (const auto &colorToWeightAndVertex : colorToWeightAndVertices[cube.left])
+        {
+            if (weight < colorToWeightAndVertex.first)
+            {
+                graph.AddEdge(vertexBaseValue + 3, colorToWeightAndVertex.second);
+            }
+        }
+
+        for (const auto &colorToWeightAndVertex : colorToWeightAndVertices[cube.bottom])
+        {
+            if (weight < colorToWeightAndVertex.first)
+            {
+                graph.AddEdge(vertexBaseValue + 4, colorToWeightAndVertex.second);
+            }
+        }
+
+        for (const auto &colorToWeightAndVertex : colorToWeightAndVertices[cube.top])
+        {
+            if (weight < colorToWeightAndVertex.first)
+            {
+                graph.AddEdge(vertexBaseValue + 5, colorToWeightAndVertex.second);
+            }
+        }
+    }
+
     return graph;
 }
 
@@ -247,7 +355,6 @@ vector<pair<int,string>> GetLargestStackOfCubes(const vector<Cube> &cubes)
 
 int main()
 {
-    return 0;
     int N;
     int caseNumber = 1;
 
