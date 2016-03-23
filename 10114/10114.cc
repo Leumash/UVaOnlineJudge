@@ -47,45 +47,32 @@ Sample Output
 
 using namespace std;
 
-int GetCurrentDepreciationIndex(int currentMonth, int currentDepreciationRecordIndex, const vector<pair<int,double>> &depreciationRecords)
+int Calculate(int months, double loanPayment, double carValue, double principle, const vector<double> &depreciationRecords)
 {
-    if (currentDepreciationRecordIndex >= depreciationRecords[depreciationRecords.size() - 1].first)
+    principle -= loanPayment;
+    carValue *= (1-depreciationRecords[months]);
+
+    if (principle < carValue)
     {
-        return currentDepreciationRecordIndex;
+        return months;
     }
 
-    if (currentMonth >= depreciationRecords[currentDepreciationRecordIndex + 1].first)
-    {
-        return currentDepreciationRecordIndex + 1;
-    }
-
-    return currentDepreciationRecordIndex;
+    return Calculate(months + 1, loanPayment, carValue, principle, depreciationRecords);
 }
 
-int GetTotalMonths(int months, double downPayment, double principle, const vector<pair<int,double>> &depreciationRecords)
+int GetTotalMonths(int months, double downPayment, double principle, const vector<double> &depreciationRecords)
 {
-    int currentMonth = 0;
-    double valueOfCar = principle + downPayment;
+    double carValue = downPayment + principle;
     double loanPayment = principle / months;
-    principle += loanPayment;
 
-    int currentDepreciationRecordIndex = 0;
+    carValue *= (1 - depreciationRecords[0]);
 
-    while (true)
+    if (principle < carValue)
     {
-        currentDepreciationRecordIndex = GetCurrentDepreciationIndex(currentMonth, currentDepreciationRecordIndex, depreciationRecords);
-        valueOfCar *= (1 - depreciationRecords[currentDepreciationRecordIndex].second);
-        principle -= loanPayment;
-
-        if (principle < valueOfCar)
-        {
-            break;
-        }
-
-        ++currentMonth;
+        return 0;
     }
 
-    return currentMonth;
+    return Calculate(1, loanPayment, carValue, principle, depreciationRecords);
 }
 
 int main()
@@ -100,11 +87,21 @@ int main()
             break;
         }
 
-        vector<pair<int,double>> depreciationRecords(numberOfDepreciationRecords);
+        vector<double> depreciationRecords(101, -1);
 
         for (int i=0; i<numberOfDepreciationRecords; ++i)
         {
-            cin >> depreciationRecords[i].first >> depreciationRecords[i].second;
+            int month;
+            cin >> month;
+            cin >> depreciationRecords[month];
+        }
+
+        for (int i=0; i<101; ++i)
+        {
+            if (depreciationRecords[i] < 0)
+            {
+                depreciationRecords[i] = depreciationRecords[i-1];
+            }
         }
 
         int totalMonths = GetTotalMonths(months, downPayment, principle, depreciationRecords);
