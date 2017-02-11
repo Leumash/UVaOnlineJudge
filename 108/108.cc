@@ -39,19 +39,6 @@ Sample Output
 
 15
 
-Runtime: O(n^4)
-
-*/
-
-/*
-   0 1 2 3
-0  1 2 3
-1  4 5 6
-2  7 8 9
-3
-
-N = 3
-
 */
 
 #include <iostream>
@@ -60,46 +47,59 @@ N = 3
 
 using namespace std;
 
-int getSum(const vector<vector<int>> &matrix, int rowStart, int rowStop, int colStart, int colStop) {
-    int sum = 0;
+vector<vector<int>> getPrefixSumMatrix(const vector<vector<int>> &matrix, int N) {
+    vector<vector<int>> prefixSumMatrix(N, vector<int>(N,0));
 
-    for (int row = rowStart; row < rowStop; ++row) {
-        for (int col = colStart; col < colStop; ++col) {
-            sum += matrix[row][col];
+    // Set initial column value
+    for (int i=0; i<N; ++i) {
+        prefixSumMatrix[i][0] = matrix[i][0];
+    }
+
+    // Fill out prefix sum array
+    for (int row=0; row<N; ++row) {
+        for (int col=1; col<N; ++col) {
+            prefixSumMatrix[row][col] = prefixSumMatrix[row][col-1] + matrix[row][col];
         }
     }
 
-    return sum;
+    return prefixSumMatrix;
 }
 
-int getMaximumSubRectangle(const vector<vector<int>> &matrix, int rowSize, int colSize, int N) {
-    int rowStop = N - rowSize + 1;
-    int colStop = N - colSize + 1;
-    int sumOfMaximal = 0;
+vector<int> getSumsInRange(const vector<vector<int>> &prefixSumMatrix, int a, int b, int N) {
+    vector<int> sumOfRange(N);
 
-    for (int row = 0; row < rowStop; ++row) {
-        for (int col = 0; col < colStop; ++col) {
-            int current = getSum(matrix, row, row + rowSize, col, col + colSize);
-            sumOfMaximal = max(sumOfMaximal, current);
-        }
+    for (int i=0; i<N; ++i) {
+        int toSubtract = a == 0 ? 0 : prefixSumMatrix[i][a-1];
+        sumOfRange[i] = prefixSumMatrix[i][b] - toSubtract;
     }
+    return sumOfRange;
+}
 
-    return sumOfMaximal;
+int getMaximumSumOfSubArray(const vector<int> &arr) {
+    int currentMax = 0;
+    int totalMax = 0;
+    for (int i=0; i<arr.size(); ++i) {
+        currentMax = currentMax + arr[i];
+        if (currentMax < 0) {
+            currentMax = 0;
+        }
+        totalMax = max(totalMax, currentMax);
+    }
+    return totalMax;
 }
 
 int getSumOfMaximalSubRectangle(const vector<vector<int>> &matrix, int N) {
-    // Brute force solution of O(n^4)
+    vector<vector<int>> prefixSumMatrix = getPrefixSumMatrix(matrix, N);
 
-    int sumOfMaximalSubRectangle = 0;
-
-    for (int rowSize=1; rowSize <= N; ++rowSize) {
-        for (int colSize=1; colSize <=N; ++colSize) {
-            int current = getMaximumSubRectangle(matrix, rowSize, colSize, N);
-            sumOfMaximalSubRectangle = max(sumOfMaximalSubRectangle, current);
+    int maximum = 0;
+    for (int a=0; a<N; ++a) {
+        for (int b = a; b<N; ++b) {
+            vector<int> arr = getSumsInRange(prefixSumMatrix, a, b, N);
+            int currentMax = getMaximumSumOfSubArray(arr);
+            maximum = max(maximum, currentMax);
         }
     }
-
-    return sumOfMaximalSubRectangle;
+    return maximum;
 }
 
 int main() {
